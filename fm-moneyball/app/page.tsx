@@ -7,13 +7,152 @@ type ParsedTable = {
   rows: string[][];
 };
 
+/** les stats doivent être en minuscule */
+const COLUMN_PRESET_WANTED = {
+  goalkeeper: [
+    "name",
+    "position",
+    "age",
+    "nat",
+    "height",
+    "personality",
+    "club",
+    "transfer value",
+    "mins",
+  ],
+  defender: [
+    "name",
+    "position",
+    "age",
+    "nat",
+    "height",
+    "personality",
+    "club",
+    "transfer value",
+    "mins",
+    "pr passes/90",
+    "hdrs w/90",
+    "hdrs%",
+    "tck r",
+    "blk/90",
+    "int/90",
+    "k hdrs/90",
+    "poss won/90",
+    "poss lost/90",
+  ],
+  fullback: [
+    "name",
+    "position",
+    "age",
+    "nat",
+    "height",
+    "personality",
+    "club",
+    "transfer value",
+    "mins",
+    "cr c/90",
+    "xa/90",
+    "pr passes/90",
+    "hdrs w/90",
+    "hdrs%",
+    "tck r",
+    "ch c/90",
+
+  ],
+  defensiveMidfielder: [
+    "name",
+    "position",
+    "age",
+    "nat",
+    "height",
+    "personality",
+    "club",
+    "transfer value",
+    "hdrs%",
+    "Hdrs W/90",
+    "k tck/90",
+    "tck r",
+    "tck/90",
+    "pr passes/90",
+    "pres c/90",
+    "poss won/90",
+    "poss lost/90",
+    "k pas/90",
+    "int/90",
+    "xa/90",
+  ],
+  midfielder: [
+    "name",
+    "position",
+    "age",
+    "nat",
+    "height",
+    "personality",
+    "club",
+    "transfer value",
+  ],
+  AttackingMidfielder: [
+    "name",
+    "position",
+    "age",
+    "nat",
+    "height",
+    "personality",
+    "club",
+    "transfer value",
+    "mins",
+    "np-xg/90",
+    "xa/90",
+    "pres a/90",
+    "pres c/90",
+    "Poss Won/90",
+    "K Ps/90",
+    "drb/90",
+    "Ch C/90",
+    "pr passes/90",
+  ],
+  striker: [
+    "name",
+    "position",
+    "age",
+    "nat",
+    "height",
+    "personality",
+    "club",
+    "transfer value",
+    "mins",
+    "np-xg/90",
+    "k ps/90",
+    "hdrs w/90",
+    "drb/90",
+    "xa/90",
+    "pres a/90",
+    "pres c/90",
+  ],
+  
+} as const;
+
+type ColumnPresetId = keyof typeof COLUMN_PRESET_WANTED;
+
+const COLUMN_PRESET_LABELS: Record<ColumnPresetId, string> = {
+  goalkeeper: "Goalkeeper",
+  defender: "Defender",
+  fullback: "Fullback",
+  striker: "Striker",
+  midfielder: "Midfielder",
+  defensiveMidfielder: "Defensive midfielder",
+  AttackingMidfielder: "Attacking midfielder | Wingers",
+};
+
+const NO_PERCENTILE_HEADER_NORMALIZED = new Set(["uid", "age", "mins"]);
+
 export default function Home() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileText, setFileText] = useState<string | null>(null);
   const [table, setTable] = useState<ParsedTable | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sort, setSort] = useState<{ colIdx: number; dir: "asc" | "desc" } | null>(null);
-  const [presetStriker, setPresetStriker] = useState(false);
+  const [activeColumnPreset, setActiveColumnPreset] = useState<ColumnPresetId | null>(null);
 
   function parseFirstTable(html: string): ParsedTable {
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -56,7 +195,7 @@ export default function Home() {
       setFileText(null);
       setTable(null);
       setSort(null);
-      setPresetStriker(false);
+      setActiveColumnPreset(null);
       return;
     }
 
@@ -67,7 +206,7 @@ export default function Home() {
       setFileText(text);
       setTable(parseFirstTable(text));
       setSort(null);
-      setPresetStriker(false);
+      setActiveColumnPreset(null);
     } catch (err) {
       setTable(null);
       setError(err instanceof Error ? err.message : "Failed to read/parse file.");
@@ -100,6 +239,9 @@ export default function Home() {
     const perCol: Array<Map<number, number>> = Array.from({ length: colCount }, () => new Map());
 
     for (let c = 0; c < colCount; c++) {
+      const headerNorm = (table.headers[c] ?? "").trim().toLowerCase();
+      if (NO_PERCENTILE_HEADER_NORMALIZED.has(headerNorm)) continue;
+
       const values: Array<{ r: number; v: number }> = [];
       for (let r = 0; r < table.rows.length; r++) {
         const n = parseNumber(table.rows[r]?.[c] ?? "");
@@ -179,11 +321,11 @@ export default function Home() {
     if (!table) return null;
     const normalizeHeader = (value: string) => value.trim().toLowerCase();
 
-    if (!presetStriker) {
+    if (!activeColumnPreset) {
       return table.headers.map((h, colIdx) => ({ header: h, colIdx }));
     }
 
-    const wanted = ["name", "position", "age", "nat", "height", "weight", "personality", "gls", "mins", "np-xg/90", "xg/90"];
+    const wanted = COLUMN_PRESET_WANTED[activeColumnPreset];
     const byNorm = new Map<string, number>();
     table.headers.forEach((h, idx) => {
       const norm = normalizeHeader(h);
@@ -197,7 +339,7 @@ export default function Home() {
         return { header: table.headers[idx] ?? w, colIdx: idx };
       })
       .filter((v): v is { header: string; colIdx: number } => v !== null);
-  }, [presetStriker, table]);
+  }, [activeColumnPreset, table]);
 
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
@@ -212,14 +354,21 @@ export default function Home() {
         {table ? (
           <section className="w-full">
             <p className="text-sm text-zinc-600 dark:text-zinc-400">Loaded: {fileName}</p>
-            <label className="mt-2 inline-flex items-center gap-2 text-sm text-zinc-900 dark:text-zinc-50">
-              <input
-                type="checkbox"
-                checked={presetStriker}
-                onChange={(e) => setPresetStriker(e.currentTarget.checked)}
-              />
-              Striker
-            </label>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-900 dark:text-zinc-50">
+              <span className="text-zinc-600 dark:text-zinc-400">Columns:</span>
+              {(Object.keys(COLUMN_PRESET_WANTED) as ColumnPresetId[]).map((id) => (
+                <label key={id} className="inline-flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={activeColumnPreset === id}
+                    onChange={() =>
+                      setActiveColumnPreset((prev) => (prev === id ? null : id))
+                    }
+                  />
+                  {COLUMN_PRESET_LABELS[id]}
+                </label>
+              ))}
+            </div>
             <div className="mt-2 max-h-[28rem] w-full overflow-auto rounded-md border border-zinc-200 dark:border-zinc-800">
               <table className="w-full border-collapse text-sm">
                 <thead className="sticky top-0 bg-white dark:bg-black">
