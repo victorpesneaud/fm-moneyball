@@ -4,8 +4,8 @@ A data analysis tool for Football Manager that identifies
 undervalued players using advanced statistics — inspired 
 by the Moneyball philosophy.
 
-**Live demo:** [link]
-please download the file named "Attackers.html" inside of ./fm-moneyball/useful_files to test it out 
+**Live demo:** [[link]](https://fm-moneyball-semx.vercel.app/)
+please download the file named "Attackers.html" inside of ./fm-moneyball/useful_files to test it out, upload it in, and press submit
 
 ## What it does
 Analyzes exported FM scouting data to surface statistically 
