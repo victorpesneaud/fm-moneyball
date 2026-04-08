@@ -1,17 +1,30 @@
-# fm-moneyball
-Web application using Data analysis to find the best players statisticaly on a videogame called Football Manager
+# FM-Moneyball
 
-Download this repo, once in the folder type 
+A data analysis tool for Football Manager that identifies 
+undervalued players using advanced statistics — inspired 
+by the Moneyball philosophy.
 
-cd fm-moneyball 
+**Live demo:** [link]
+please download the file named "Attackers.html" inside of ./fm-moneyball/useful_files to test it out 
 
-npm dev run 
+## What it does
+Analyzes exported FM scouting data to surface statistically 
+elite players who are often overlooked by traditional scouting. 
+Filter by position, league, age, and value to find hidden gems.
 
-import the html file in the upload section
+## Stack
+Vite, TypeScript
 
-the datas are from and export from a football manager view that use the attributes listed bellow
+## Features
+- Advanced stat weighting by position
+- Moneyball efficiency score per player
+- Filter and sort by custom metrics
 
-and the app shall work! 
+## How to use
+1. Filter the players using the specific "view" included in the folder
+2. Export your FM scouting report as a "Web Page"
+3. Drop it in the app
+4. Get your shortlist
 
 
 list of all the datas required : 
